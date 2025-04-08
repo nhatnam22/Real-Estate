@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,40 +31,50 @@ public class PropertyController {
 	private final PropertyApprovalService propertyApprovalService;
 	private final IPropertyService iPropertyService;
 	private final UploadFile uploadFile;
-	
+
 	@PostMapping("/post-property")
-	public ResponseEntity<ClassResponse> postProperty(@Valid @RequestBody PropertyDTO propertyDTO, BindingResult bindingResult)
-			throws Exception {
+	public ResponseEntity<ClassResponse> postProperty(@Valid @RequestBody PropertyDTO propertyDTO,
+			BindingResult bindingResult) throws Exception {
 		if (bindingResult.hasErrors()) {
 			List<String> errorMessages = bindingResult.getFieldErrors().stream().map(FieldError::getDefaultMessage)
 					.toList();
-			return ResponseEntity.badRequest().body(ClassResponse.builder().status(HttpStatus.BAD_REQUEST).message("Lỗi nhập liệu: " + String.join(", ", errorMessages)).build());
+			return ResponseEntity.badRequest().body(ClassResponse.builder().status(HttpStatus.BAD_REQUEST)
+					.message("Lỗi nhập liệu: " + String.join(", ", errorMessages)).build());
 		}
 		Property newProperty = iPropertyService.createProperty(propertyDTO);
 //		if(propertyApprovalService.isEligibleForAutoVerification(newProperty) == false) {
 //			return ResponseEntity.badRequest().body(ClassResponse.builder().status(HttpStatus.ACCEPTED).message("Bài đăng đang chờ duyệt").build());
 //		}
-		return ResponseEntity.ok().body(ClassResponse.builder().status(HttpStatus.OK).message("Bài đăng đã được phê duyệt tự động").data(newProperty).build());
-		
+		return ResponseEntity.ok().body(ClassResponse.builder().status(HttpStatus.OK)
+				.message("Bài đăng đã được phê duyệt tự động").data(newProperty).build());
+
 	}
-	@PostMapping("/upload/")
-	public ResponseEntity<ClassResponse> postImages(@ModelAttribute List<MultipartFile> files )
-			throws Exception {
-		if(uploadFile.isFileSizeWithinLimit(files)) {
-			List<String> urlImages = files.stream()
-				    .map(file -> {
-				        try {
-				            return uploadFile.storeFile(file);
-				        } catch (Exception e) {
-				            throw new RuntimeException("Failed to store file: " + file.getOriginalFilename(), e);
-				        }
-				    })
-				    .toList();
-			return ResponseEntity.ok().body(ClassResponse.builder().data(urlImages).message("đăng tải hình ảnh thành công").status(HttpStatus.OK).build());
+
+	@PostMapping("/upload")
+	public ResponseEntity<ClassResponse> postImages(@ModelAttribute List<MultipartFile> files) throws Exception {
+		if (uploadFile.isFileSizeWithinLimit(files)) {
+			List<String> urlImages = files.stream().map(file -> {
+				try {
+					return uploadFile.storeFile(file);
+				} catch (Exception e) {
+					throw new RuntimeException("Failed to store file: " + file.getOriginalFilename(), e);
+				}
+			}).toList();
+			return ResponseEntity.ok().body(ClassResponse.builder().data(urlImages)
+					.message("đăng tải hình ảnh thành công").status(HttpStatus.OK).build());
 		}
-		return ResponseEntity.badRequest().body(ClassResponse.builder().status(HttpStatus.BAD_REQUEST).message("không thể đăng tải hình ảnh").build());
-	
+		return ResponseEntity.badRequest().body(ClassResponse.builder().status(HttpStatus.BAD_REQUEST)
+				.message("không thể đăng tải hình ảnh").build());
+
 	}
+
+	@GetMapping("/get-all")
+	public ResponseEntity<ClassResponse> getAllProperties() throws Exception {
+		List<Property> listdata = iPropertyService.getAllProperties();
+		return ResponseEntity.ok().body(ClassResponse.builder().data(listdata).message("list-property").status(HttpStatus.ACCEPTED).build());
+
+	}
+
 	public PropertyController(PropertyApprovalService propertyApprovalService, IPropertyService iPropertyService,
 			UploadFile uploadFile) {
 		super();

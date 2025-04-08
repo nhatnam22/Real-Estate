@@ -1,5 +1,7 @@
 package com.project.java.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import com.project.java.dto.PropertyDTO;
@@ -83,6 +85,12 @@ public class IPropertyService implements PropertyService {
 		this.locationService = locationService;
 		this.propertyRepository = propertyRepository;
 		this.userRepository= userRepository;
+	}
+
+	@Override
+	public List<Property> getAllProperties() throws Exception {
+		
+		return propertyRepository.findAll();
 	}
 
 

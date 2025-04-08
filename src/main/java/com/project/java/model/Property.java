@@ -357,6 +357,44 @@ public class Property {
         public Property build() {
             return new Property(this);
         }
+
+		public Builder(Long id, String name, String description, Integer price, Integer bedroom, Integer bathroom,
+				Integer yearBuilt, Integer size, String images, String address, String province, String district,
+				String ward, Integer avgStar, Boolean verified, LocalDateTime expiredDate, LocalDateTime expiredBoost,
+				Direction direction, PropertyStatus status, ReviewStatus statusReview, PropertyListingType listingType,
+				User postedBy, String featureImage, PropertyType propertyType, List<Feature> features, Set<Tag> tags,
+				Set<Comment> comments, Set<Rating> ratings, Set<WishList> wishList) {
+			super();
+			this.id = id;
+			this.name = name;
+			this.description = description;
+			this.price = price;
+			this.bedroom = bedroom;
+			this.bathroom = bathroom;
+			this.yearBuilt = yearBuilt;
+			this.size = size;
+			this.images = images;
+			this.address = address;
+			this.province = province;
+			this.district = district;
+			this.ward = ward;
+			this.avgStar = avgStar;
+			this.verified = verified;
+			this.expiredDate = expiredDate;
+			this.expiredBoost = expiredBoost;
+			this.direction = direction;
+			this.status = status;
+			this.statusReview = statusReview;
+			this.listingType = listingType;
+			this.postedBy = postedBy;
+			this.featureImage = featureImage;
+			this.propertyType = propertyType;
+			this.features = features;
+			this.tags = tags;
+			this.comments = comments;
+			this.ratings = ratings;
+			this.wishList = wishList;
+		}
     }
 
 	public Long getId() {
@@ -588,6 +626,40 @@ public class Property {
 	}
 
 	public void setWishList(Set<WishList> wishList) {
+		this.wishList = wishList;
+	}
+
+	public Property() {
+		super();
+		this.id = id;
+		this.name = name;
+		this.description = description;
+		this.price = price;
+		this.bedroom = bedroom;
+		this.bathroom = bathroom;
+		this.floor = floor;
+		this.yearBuilt = yearBuilt;
+		this.size = size;
+		this.images = images;
+		this.address = address;
+		this.province = province;
+		this.district = district;
+		this.ward = ward;
+		this.avgStar = avgStar;
+		this.verified = verified;
+		this.expiredDate = expiredDate;
+		this.expiredBoost = expiredBoost;
+		this.direction = direction;
+		this.status = status;
+		this.statusReview = statusReview;
+		this.listingType = listingType;
+		this.postedBy = postedBy;
+		this.featureImage = featureImage;
+		this.propertyType = propertyType;
+		this.features = features;
+		this.tags = tags;
+		this.comments = comments;
+		this.ratings = ratings;
 		this.wishList = wishList;
 	}
 

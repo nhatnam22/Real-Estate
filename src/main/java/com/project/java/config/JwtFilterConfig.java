@@ -98,7 +98,10 @@ public class JwtFilterConfig extends OncePerRequestFilter {
 	        Pair.of("/auth/users/login/exchange-code", "GET"),
 	        Pair.of("/property/property-type", "GET"),
 	        Pair.of("/property/direction/get-all", "GET"),
-	        Pair.of("/property/get-all", "GET")
+	        Pair.of("/property/get-all", "GET"),
+			Pair.of("/auth/users/momo-ipn", "POST"),
+			Pair.of("/pricing/get-all", "GET"),
+			Pair.of("/property/search", "POST")
 	    );
 	    String requestPath = request.getServletPath();
 	    String requestMethod = request.getMethod();

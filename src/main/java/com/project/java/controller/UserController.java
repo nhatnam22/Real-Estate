@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.project.java.config.Environment;
 import com.project.java.config.Environment.EnvTarget;
 import com.project.java.dto.GetUserDTO;
+import com.project.java.dto.MoMoIpnRequest;
 import com.project.java.dto.UserDTO;
 import com.project.java.dto.UserSignInDTO;
 import com.project.java.enums.RequestType;
@@ -128,13 +129,25 @@ public class UserController {
 	    
 	    User user = (User) authentication.getPrincipal();
 	    
-	    PaymentResponse response = userService.charge(money);
+	    PaymentResponse response = userService.charge(money, user.getEmail());
 	    String payURL = response.getPayUrl();
-	    Float floatMoney = Float.valueOf(money);
-	    user.setMoney(floatMoney);
-	    userRepository.save(user);
+	    
+	    // Note: Do not update user money immediately. We must wait for MoMo IPN Webhook to confirm the transaction.
 	    return ResponseEntity.ok().body(new ClassResponse.Builder().status(HttpStatus.CREATED).message("direct payURL").data(payURL).build());
 	}
+
+    @PostMapping("/momo-ipn")
+    public ResponseEntity<Void> handleMoMoIPN(@RequestBody MoMoIpnRequest request) {
+        try {
+            userService.processMoMoIpn(request);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            logger.error("Error processing MoMo IPN", e);
+            // Return 204 or 400 depending on requirements, usually MoMo requires 204 for successful receipt
+            // but we can return bad request if validation fails
+            return ResponseEntity.badRequest().build();
+        }
+    }
 
 	@GetMapping("/login/login-type/{type}")
 	public ResponseEntity<ClassResponse> callToAuthorizationServer(@PathVariable String type) throws Exception {

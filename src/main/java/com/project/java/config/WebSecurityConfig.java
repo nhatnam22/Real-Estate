@@ -46,9 +46,13 @@ public class WebSecurityConfig {
 				                 "/property/direction/get-all","/error",
 				                 "/address/provinces",
 				                 "/property/post-property",
-								 "/property/get-all")
+								 "/property/get-all",
+								 "/auth/users/momo-ipn",
+								 "/property/boost",
+								 "/pricing/get-all",
+								 "/property/search")
 						.permitAll()
-						.requestMatchers("auth/users/getuser").hasAnyAuthority("USER")
+						.requestMatchers("auth/users/getuser", "/wishlist/**").hasAnyAuthority("USER")
 						.anyRequest().authenticated());
 
 

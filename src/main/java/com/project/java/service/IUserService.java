@@ -5,8 +5,12 @@ import java.util.Set;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.project.java.config.Environment;
+import com.project.java.dto.MoMoIpnRequest;
 import com.project.java.dto.UserDTO;
 import com.project.java.dto.UserSignInDTO;
 import com.project.java.enums.RequestType;
@@ -18,12 +22,15 @@ import com.project.java.model.Momo.PaymentResponse;
 import com.project.java.repository.RoleRepository;
 import com.project.java.repository.UserRepository;
 import com.project.java.service.Momo.CreateOrderMoMo;
+import com.project.java.utils.Encoder;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class IUserService implements UserService {
+
+    private static final Logger logger = LoggerFactory.getLogger(IUserService.class);
 
 	public IUserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder,
 			JwtTokenService jwtTokenService) {
@@ -107,23 +114,75 @@ public class IUserService implements UserService {
 	}
 
 	@Override
-	public PaymentResponse charge(String money) throws MoMoException {
-		String requestId = String.valueOf(System.currentTimeMillis());
-		String orderId = String.valueOf(System.currentTimeMillis());
+	public PaymentResponse charge(String money, String email) throws MoMoException {
+		// Use user's email combined with timestamp for tracking
+		String requestId = email + "_" + System.currentTimeMillis();
+		String orderId = email + "_" + System.currentTimeMillis();
 
 		String partnerClientId = "partnerClientId";
-		String orderInfo = "Pay With MoMo";
+		String orderInfo = "Top-up Wallet for user " + email;
 		String returnURL = "http://localhost:5173/user/nap-tien/thanh-cong";
-		String notifyURL = "https://google.com.vn";
+		// The IPN webhook endpoint
+		String notifyURL = "http://localhost:8080/auth/users/momo-ipn";
 		Environment environment = Environment.selectEnv("dev");
 		try {
+		    // Adding email to extraData to identify user upon callback
 			PaymentResponse reponse = CreateOrderMoMo.process(environment, orderId, requestId, money,
-					orderInfo, returnURL, notifyURL, "", RequestType.PAY_WITH_ATM, Boolean.TRUE);
+					orderInfo, returnURL, notifyURL, email, RequestType.PAY_WITH_ATM, Boolean.TRUE);
 			return reponse;
 		} catch (Exception e) {
 			Throwable cause = e.getCause();
 			throw new MoMoException(cause);
 		}
+	}
+	
+	@Override
+    @Transactional
+	public void processMoMoIpn(MoMoIpnRequest request) throws Exception {
+	    logger.info("Received IPN request from MoMo: {}", request);
+	    
+	    Environment environment = Environment.selectEnv("dev");
+	    String secretKey = environment.getPartnerInfo().getSecretKey();
+	    
+	    // Verify signature
+	    String rawData = "accessKey=" + environment.getPartnerInfo().getAccessKey()
+	        + "&amount=" + request.getAmount()
+	        + "&extraData=" + request.getExtraData()
+	        + "&message=" + request.getMessage()
+	        + "&orderId=" + request.getOrderId()
+	        + "&orderInfo=" + request.getOrderInfo()
+	        + "&orderType=" + request.getOrderType()
+	        + "&partnerCode=" + request.getPartnerCode()
+	        + "&payType=" + request.getPayType()
+	        + "&requestId=" + request.getRequestId()
+	        + "&responseTime=" + request.getResponseTime()
+	        + "&resultCode=" + request.getResultCode()
+	        + "&transId=" + request.getTransId();
+	        
+        String expectedSignature = Encoder.signHmacSHA256(rawData, secretKey);
+        
+        if (!expectedSignature.equals(request.getSignature())) {
+            logger.error("Invalid MoMo signature! Expected: {}, but got: {}", expectedSignature, request.getSignature());
+            throw new SecurityException("Invalid MoMo signature");
+        }
+        
+        // resultCode == 0 means successful transaction
+        if (request.getResultCode() == 0) {
+            String userEmail = request.getExtraData(); // We passed email in extraData
+            logger.info("Transaction successful for user: {}", userEmail);
+            
+            User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new Exception("User not found with email: " + userEmail));
+                
+            // Top up user's money
+            Float currentMoney = user.getMoney() != null ? user.getMoney() : 0f;
+            user.setMoney(currentMoney + request.getAmount());
+            userRepository.save(user);
+            logger.info("Successfully updated balance for user {}. New balance: {}", userEmail, user.getMoney());
+            
+        } else {
+            logger.warn("Transaction failed or canceled. ResultCode: {}, Message: {}", request.getResultCode(), request.getMessage());
+        }
 	}
 
 }

@@ -18,6 +18,7 @@ public class PropertyFilterService {
 		super();
 		this.propertyRepository = propertyRepository;
 	}
+	
 	public Page<Property> searchProperty(PropertyFilterDTO propertyFilterDTO, int page, int size, String sort){
         PropertySpecificationBuilder builder = new PropertySpecificationBuilder();
 
@@ -29,7 +30,15 @@ public class PropertyFilterService {
         builder.addStrategy(new StrategyPropertyFilter.PropertyTypeFilter(), propertyFilterDTO);
         
         Specification<Property> specification = builder.build();
-        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id"));
+        
+        // Cập nhật Sort để ưu tiên các bài đăng đang được Boost lên đầu trang
+        Sort sortWithBoost = Sort.by(
+            Sort.Order.desc("expiredBoost"),
+            Sort.Order.desc("id")
+        );
+        
+        PageRequest pageRequest = PageRequest.of(page, size, sortWithBoost);
+        
         return propertyRepository.findAll(specification, pageRequest);
 	}
 }
